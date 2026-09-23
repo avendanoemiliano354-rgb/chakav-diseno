@@ -59,7 +59,12 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
 <script type="module">
 try{
 const THREE=await import('three');const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js');
-const viewer=document.getElementById('viewer'),scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e1d4);
+const viewer=document.getElementById('viewer');
+const errorBox=document.getElementById('error');
+const b1=document.getElementById('b1'),b2=document.getElementById('b2'),resetBtn=document.getElementById('reset'),closeBtn=document.getElementById('close');
+const mode=document.getElementById('mode'),bfPrice=document.getElementById('bfPrice'),sheetPrice=document.getElementById('sheetPrice'),sheetW=document.getElementById('sheetW'),sheetL=document.getElementById('sheetL'),kerf=document.getElementById('kerf');
+const applyBtn=document.getElementById('apply'),msg=document.getElementById('msg'),status=document.getElementById('status'),cuts=document.getElementById('cuts'),metricLabel=document.getElementById('metricLabel'),metric=document.getElementById('metric'),cost=document.getElementById('cost'),sheetSection=document.getElementById('sheetSection'),sheets=document.getElementById('sheets');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e1d4);
 const camera=new THREE.PerspectiveCamera(38,viewer.clientWidth/viewer.clientHeight,.1,1500),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(viewer.clientWidth,viewer.clientHeight);renderer.shadowMap.enabled=true;viewer.appendChild(renderer.domElement);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.enablePan=true;controls.screenSpacePanning=true;controls.touches.ONE=THREE.TOUCH.ROTATE;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
 scene.add(new THREE.HemisphereLight(0xfff7e8,0x75695f,2.1));const light=new THREE.DirectionalLight(0xffffff,2.5);light.position.set(70,110,85);light.castShadow=true;scene.add(light);
@@ -108,10 +113,10 @@ function packSheets(){
 }
 function drawSheets(ss){const SW=+sheetW.value||122,SL=+sheetL.value||244;sheets.innerHTML=ss.map((sh,i)=>`<div><b>Hoja ${i+1} · ${fmt(SW)} × ${fmt(SL)} cm</b><div class="sheet">${sh.used.map(p=>`<div class="piece" style="left:${p.x/SW*100}%;top:${p.y/SL*100}%;width:${p.w/SW*100}%;height:${p.h/SL*100}%">${p.name}</div>`).join('')}</div></div>`).join('')}
 mode.onchange=()=>{document.querySelectorAll('.solidOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='solid'));document.querySelectorAll('.sheetOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='sheet'));renderData()}
-apply.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+10||d.H<=2*d.T+20){msg.textContent='Las medidas no dejan espacio suficiente para los cajones.';return}build();msg.textContent='3D, despiece y material recalculados.'}
-b1.onclick=()=>{open1=!open1;sync()};b2.onclick=()=>{open2=!open2;sync()};close.onclick=()=>{open1=open2=false;sync()};reset.onclick=fit;
+applyBtn.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+10||d.H<=2*d.T+20){msg.textContent='Las medidas no dejan espacio suficiente para los cajones.';return}build();msg.textContent='3D, despiece y material recalculados.'}
+b1.onclick=()=>{open1=!open1;sync()};b2.onclick=()=>{open2=!open2;sync()};closeBtn.onclick=()=>{open1=open2=false;sync()};resetBtn.onclick=fit;
 [bfPrice,sheetPrice,sheetW,sheetL,kerf].forEach(x=>x.oninput=()=>renderData());
 window.onresize=()=>{camera.aspect=viewer.clientWidth/viewer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(viewer.clientWidth,viewer.clientHeight,false)};build();
 const clock=new THREE.Clock();(function anim(){requestAnimationFrame(anim);let k=Math.min(1,(1-Math.pow(.001,clock.getDelta()))*.22);[d1,d2].forEach(g=>g&&(g.position.z+=(g.userData.targetZ-g.position.z)*k));controls.update();renderer.render(scene,camera)})()
-}catch(e){error.style.display='block';console.error(e)}
+}catch(e){const eb=document.getElementById('error');if(eb){eb.style.display='block';eb.textContent='Error al cargar el 3D: '+(e?.message||e)}console.error(e)}
 </script></body></html>
