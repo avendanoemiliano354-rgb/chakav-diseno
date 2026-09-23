@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CHAKAV Diseño — V6</title>
+<style>
+*{box-sizing:border-box} html,body{margin:0;background:#f2eee6;color:#241d18;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#211b17;color:#fff;padding:12px 16px} header b{font-size:18px}.sub{font-size:12px;opacity:.75;margin-top:3px}
+#viewer{height:55vh;min-height:390px;position:relative;background:linear-gradient(#eee9df,#d8cebd);overflow:hidden;touch-action:none}
+#viewer canvas{display:block;width:100%;height:100%}.tip{position:absolute;z-index:2;left:10px;top:10px;background:#ffffffe8;padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.35;pointer-events:none}
+#error{display:none;position:absolute;inset:15px;z-index:5;background:#fff;padding:18px;border-radius:12px;color:#7a2b22}
+.panel{background:#fff;padding:12px;border-top:1px solid #ddd3c6}.controls,.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+button{min-height:46px;border:0;border-radius:12px;padding:10px;font-size:14px;font-weight:700;background:#2b2825;color:#fff}button.wood,.apply{background:#8c5b38}.apply{width:100%;margin-top:9px}
+.title{font-weight:800;font-size:15px;margin:15px 0 9px}.field{background:#f5f1ea;border:1px solid #ded5ca;border-radius:10px;padding:8px}
+.field label{display:block;font-size:11px;color:#6e6259;margin-bottom:4px}.field input,.field select{width:100%;font-size:16px;border:0;background:transparent;outline:none;color:#211b17}
+.msg,.status{text-align:center;font-size:12px;color:#675d55;margin-top:8px}.tablewrap{overflow-x:auto;border:1px solid #e0d8cf;border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{padding:8px 6px;border-bottom:1px solid #e7e0d8;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}th{background:#f5f1ea;color:#62584f}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.card{border:1px solid #ded5ca;background:#faf7f2;border-radius:10px;padding:10px}.card small{display:block;color:#776b61}.card strong{font-size:17px}
+.sheet{position:relative;width:100%;aspect-ratio:122/244;border:2px solid #7d6a59;background:#ead7b9;margin:8px auto;max-width:250px;overflow:hidden}.piece{position:absolute;border:1px solid #4e3a2b;background:#b8865caa;font-size:8px;overflow:hidden;padding:1px}
+.note{font-size:11px;color:#746960;line-height:1.4;margin-top:8px}.hidden{display:none}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=60"}}</script>
+</head>
+<body>
+<header><b>CHAKAV Diseño — V6</b><div class="sub">Puertas · zonas verticales · repisas automáticas y manuales</div></header>
+<div id="viewer"><div class="tip">1 dedo: girar<br>2 dedos: zoom + desplazar</div><div id="error">No se pudo cargar el motor 3D. Recarga con conexión a internet.</div></div>
+<div class="panel">
+ <div class="grid2">
+  <div class="field" id="drawerControlBox"><label>Cajón a controlar</label><select id="drawerSelect"></select></div>
+  <button class="wood" id="drawerToggle">Abrir cajón</button>
+  <button class="wood" id="openAll">Abrir todos</button>
+  <button id="close">Cerrar todos</button>
+  <button id="reset">Vista inicial</button>
+ </div>
+ <div class="grid2" style="margin-top:9px">
+  <div class="field" id="doorControlBox"><label>Puerta a controlar</label><select id="doorSelect"></select></div>
+  <button class="wood" id="doorToggle">Abrir puerta</button>
+  <button class="wood" id="openAllDoors">Abrir puertas</button>
+  <button id="closeAllDoors">Cerrar puertas</button>
+ </div>
+
+ <div class="title">Dimensiones</div>
+ <div class="grid2">
+  <div class="field"><label>Ancho total (cm)</label><input id="W" type="number" value="40" step=".1"></div>
+  <div class="field"><label>Alto total (cm)</label><input id="H" type="number" value="60" step=".1"></div>
+  <div class="field"><label>Fondo total (cm)</label><input id="D" type="number" value="40" step=".1"></div>
+  <div class="field"><label>Espesor principal (cm)</label><input id="T" type="number" value="2.54" step=".01"></div>
+ </div>
+
+ <div class="title">Configuración interior V6</div>
+ <div class="grid2">
+  <div class="field"><label>Número de cajones</label><input id="drawerCount" type="number" value="2" min="0" max="6" step="1"></div>
+  <div class="field"><label>Número de repisas</label><input id="shelfCount" type="number" value="0" min="0" max="8" step="1"></div>
+  <div class="field"><label>Número de puertas</label><input id="doorCount" type="number" value="0" min="0" max="2" step="1"></div>
+  <div class="field"><label>Apertura de puerta única</label><select id="doorSide"><option value="left">Bisagra izquierda</option><option value="right">Bisagra derecha</option></select></div>
+  <div class="field"><label>Altura zona de cajones</label><input id="drawerZonePct" type="number" value="45" min="15" max="85" step="1"></div>
+  <div class="field"><label>Repisas</label><select id="shelfMode"><option value="auto">Distribución automática</option><option value="manual">Posición manual</option></select></div>
+ </div>
+ <div id="manualShelves" class="hidden" style="margin-top:9px"></div>
+ <div class="note">V6 divide el frente en zonas: los cajones ocupan la parte inferior y la zona superior puede quedar abierta o cerrarse con una o dos puertas. Las repisas se colocan en esa zona superior. En modo manual puedes indicar su altura desde la base del mueble.</div>
+
+ <div class="title">Material y precio</div>
+ <div class="grid2">
+  <div class="field"><label>Sistema de cálculo</label><select id="mode"><option value="solid">Madera sólida · pie tablar</option><option value="sheet">Triplay / MDF / tablero · hojas</option></select></div>
+  <div class="field" id="speciesBox"><label>Especie / material</label><input id="material" value="Tzalam"></div>
+  <div class="field solidOnly"><label>Precio por pie tablar (MXN)</label><input id="bfPrice" type="number" value="30" step=".01"></div>
+  <div class="field sheetOnly hidden"><label>Precio por hoja (MXN)</label><input id="sheetPrice" type="number" value="900" step=".01"></div>
+  <div class="field sheetOnly hidden"><label>Ancho hoja (cm)</label><input id="sheetW" type="number" value="122" step=".1"></div>
+  <div class="field sheetOnly hidden"><label>Largo hoja (cm)</label><input id="sheetL" type="number" value="244" step=".1"></div>
+  <div class="field sheetOnly hidden"><label>Corte de sierra / kerf (mm)</label><input id="kerf" type="number" value="3" step=".1"></div>
+ </div>
+
+ <div class="title">Trasera independiente</div>
+ <div class="grid2">
+  <div class="field"><label>Lleva trasera</label><select id="hasBack"><option value="yes">Sí</option><option value="no">No</option></select></div>
+  <div class="field"><label>Material de trasera</label><input id="backMaterial" value="Triplay"></div>
+  <div class="field"><label>Espesor trasera (cm)</label><input id="backT" type="number" value="0.6" step=".1"></div>
+  <div class="field"><label>Precio hoja trasera (MXN)</label><input id="backPrice" type="number" value="450" step=".01"></div>
+  <div class="field"><label>Hoja trasera ancho × largo (cm)</label><div style="display:flex;gap:6px"><input id="backW" type="number" value="122" step=".1"><input id="backL" type="number" value="244" step=".1"></div></div>
+ </div>
+ <div class="note">La trasera NO se suma a los pies tablares ni a las hojas del material principal. Se calcula por separado.</div>
+
+ <button class="apply" id="apply">Recalcular mueble y material</button><div class="msg" id="msg"></div>
+ <div class="status" id="status"></div>
+
+ <div class="title">Despiece de fabricación</div>
+ <div class="tablewrap"><table><thead><tr><th>Pieza</th><th>Cant.</th><th>Largo cm</th><th>Ancho cm</th><th>Esp. cm</th><th>PT/pza</th><th>PT total</th></tr></thead><tbody id="cuts"></tbody></table></div>
+ <div class="cards"><div class="card"><small id="metricLabel">Pies tablares</small><strong id="metric">—</strong></div><div class="card"><small>Costo material principal</small><strong id="cost">—</strong></div><div class="card"><small>Trasera independiente</small><strong id="backMetric">—</strong></div><div class="card"><small>Costo trasera</small><strong id="backCost">—</strong></div></div>
+
+ <div id="sheetSection" class="hidden"><div class="title">Plan preliminar de hojas</div><div id="sheets"></div><div class="note">El acomodo considera dimensiones y kerf. Es una optimización preliminar tipo guillotina; posteriormente añadiremos veta, margen perimetral y prioridad de cortes.</div></div>
+ <div class="note">Regla constructiva V6: tapa superior a ancho y fondo completos; costados debajo de la tapa; base entre costados. Cajones y repisas son configurables. La trasera es un material independiente y no contamina el cálculo del material principal.</div>
+</div>
+<script type="module">
+try{
+const THREE=await import('three');const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js?v=60');
+const viewer=document.getElementById('viewer');
+const errorBox=document.getElementById('error');
+const resetBtn=document.getElementById('reset'),closeBtn=document.getElementById('close'),drawerSelect=document.getElementById('drawerSelect'),drawerToggle=document.getElementById('drawerToggle'),openAll=document.getElementById('openAll'),drawerControlBox=document.getElementById('drawerControlBox');
+const doorSelect=document.getElementById('doorSelect'),doorToggle=document.getElementById('doorToggle'),openAllDoors=document.getElementById('openAllDoors'),closeAllDoors=document.getElementById('closeAllDoors'),doorControlBox=document.getElementById('doorControlBox');
+const mode=document.getElementById('mode'),bfPrice=document.getElementById('bfPrice'),sheetPrice=document.getElementById('sheetPrice'),sheetW=document.getElementById('sheetW'),sheetL=document.getElementById('sheetL'),kerf=document.getElementById('kerf');
+const drawerCount=document.getElementById('drawerCount'),shelfCount=document.getElementById('shelfCount'),doorCount=document.getElementById('doorCount'),doorSide=document.getElementById('doorSide'),drawerZonePct=document.getElementById('drawerZonePct'),shelfMode=document.getElementById('shelfMode'),manualShelves=document.getElementById('manualShelves'),hasBack=document.getElementById('hasBack'),backT=document.getElementById('backT'),backPrice=document.getElementById('backPrice'),backW=document.getElementById('backW'),backL=document.getElementById('backL'),backMetric=document.getElementById('backMetric'),backCost=document.getElementById('backCost');
+const applyBtn=document.getElementById('apply'),msg=document.getElementById('msg'),status=document.getElementById('status'),cuts=document.getElementById('cuts'),metricLabel=document.getElementById('metricLabel'),metric=document.getElementById('metric'),cost=document.getElementById('cost'),sheetSection=document.getElementById('sheetSection'),sheets=document.getElementById('sheets');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e1d4);
+const camera=new THREE.PerspectiveCamera(38,viewer.clientWidth/viewer.clientHeight,.1,1500),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(viewer.clientWidth,viewer.clientHeight);renderer.shadowMap.enabled=true;viewer.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.enablePan=true;controls.screenSpacePanning=true;controls.touches.ONE=THREE.TOUCH.ROTATE;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
+scene.add(new THREE.HemisphereLight(0xfff7e8,0x75695f,2.1));const light=new THREE.DirectionalLight(0xffffff,2.5);light.position.set(70,110,85);light.castShadow=true;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({color:0xd6ccbd,roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-1.3;floor.receiveShadow=true;scene.add(floor);
+const wood=new THREE.MeshStandardMaterial({color:0x8b5834,roughness:.62}),frontMat=new THREE.MeshStandardMaterial({color:0xa36a3d,roughness:.58}),doorMat=new THREE.MeshStandardMaterial({color:0x9a633a,roughness:.6}),drawerMat=new THREE.MeshStandardMaterial({color:0x98603a,roughness:.67}),backMat=new THREE.MeshStandardMaterial({color:0x70462d,roughness:.75}),dark=new THREE.MeshStandardMaterial({color:0x292623});
+let d={W:40,H:60,D:40,T:2.54},cab=null,d1,d2,drawers=[],openStates=[],doors=[],doorStates=[],travel=29,parts=[],backPart=null;
+function box(n,w,h,z,x,y,pz,m,p){let q=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.05,w),Math.max(.05,h),Math.max(.05,z)),m);q.name=n;q.position.set(x,y,pz);q.castShadow=q.receiveShadow=true;p.add(q);return q}
+function addPart(name,qty,L,A,E){parts.push({name,qty,L,A,E})}
+function drawer(parent,y,iw,dh,dd){
+ const g=new THREE.Group(),ft=2,st=1.5,bt=1.2,sh=Math.max(5,dh-3.5);g.position.set(0,y,d.D/2-ft/2+.25);g.userData.closedZ=g.position.z;parent.add(g);
+ box('Frente',iw,dh,ft,0,0,0,frontMat,g);box('Lat izq',st,sh,dd,-iw/2+st/2,-1,-dd/2,drawerMat,g);box('Lat der',st,sh,dd,iw/2-st/2,-1,-dd/2,drawerMat,g);box('Trasera',iw-2*st,sh,st,0,-1,-dd+st/2,drawerMat,g);box('Fondo',iw-2*st,bt,dd-st,0,-dh/2+2.2,-dd/2,drawerMat,g);box('Jaladera',Math.min(9,iw*.35),1.5,1.8,0,0,ft/2+1,dark,g);g.userData.targetZ=g.userData.closedZ;return g
+}
+function makeDoor(parent,x,y,w,h,hingeSide,index){
+ const g=new THREE.Group(),ft=2,hingeX=hingeSide==='left'?-w/2:w/2;
+ g.position.set(x+hingeX,y,d.D/2+ft/2+.35);g.userData.hinge=hingeSide;g.userData.target=0;parent.add(g);
+ box('Puerta '+(index+1),w,h,ft,-hingeX,0,0,doorMat,g);
+ const knobX=hingeSide==='left' ? w*.36 : -w*.36;
+ box('Jaladera puerta',1.5,5,1.8,knobX,0,ft/2+1,dark,g);
+ return g
+}
+function renderManualShelfFields(){
+ const n=Math.max(0,Math.min(8,Math.round(+shelfCount.value||0)));
+ if(shelfMode.value!=='manual'||n===0){manualShelves.classList.add('hidden');manualShelves.innerHTML='';return}
+ manualShelves.classList.remove('hidden');
+ const existing=[...manualShelves.querySelectorAll('input')].map(x=>x.value);
+ manualShelves.innerHTML='<div class="grid2">'+Array.from({length:n},(_,i)=>`<div class="field"><label>Repisa ${i+1} · altura desde base (cm)</label><input class="shelfPos" type="number" value="${existing[i]||Math.round((d.H-d.T)*(i+1)/(n+1)*10)/10}" step=".1"></div>`).join('')+'</div>';
+}
+function build(){
+ if(cab){cab.traverse(o=>o.geometry&&o.geometry.dispose());scene.remove(cab)}
+ parts=[];backPart=null;drawers=[];openStates=[];doors=[];doorStates=[];d1=d2=null;
+ const {W,H,D,T}=d, nD=Math.max(0,Math.min(6,Math.round(+drawerCount.value||0))), nS=Math.max(0,Math.min(8,Math.round(+shelfCount.value||0))), nDoor=Math.max(0,Math.min(2,Math.round(+doorCount.value||0)));
+ drawerCount.value=nD;shelfCount.value=nS;doorCount.value=nDoor;
+ cab=new THREE.Group();scene.add(cab);
+ box('Tapa superior',W,T,D,0,H-T/2,0,wood,cab);addPart('Tapa superior',1,W,D,T);
+ const sideH=H-T,insideW=W-2*T;
+ box('Costado izquierdo',T,sideH,D,-W/2+T/2,sideH/2,0,wood,cab);box('Costado derecho',T,sideH,D,W/2-T/2,sideH/2,0,wood,cab);addPart('Costados',2,sideH,D,T);
+ box('Base inferior',insideW,T,D,0,T/2,0,wood,cab);addPart('Base inferior',1,insideW,D,T);
+
+ // Trasera: pieza independiente, no entra en parts/material principal.
+ const rawBackT=Number(backT.value),backH=Math.max(1,sideH-T),useBack=(hasBack.value==='yes' && isFinite(rawBackT) && rawBackT>0);
+ if(useBack){
+   const bt=rawBackT;
+   box('Trasera independiente',insideW,backH,bt,0,T+backH/2,-D/2+bt/2,backMat,cab);
+   backPart={name:'Trasera independiente',qty:1,L:backH,A:insideW,E:bt};
+ }
+
+ const openingBottom=T,openingTop=sideH,openingH=Math.max(1,openingTop-openingBottom),gap=1.1;
+ // Los cajones ocupan la zona inferior; las repisas, el espacio superior restante.
+ let drawerZone=nD>0 ? openingH*Math.max(.15,Math.min(.85,(+drawerZonePct.value||45)/100)) : 0;
+ if(nD>0 && nS===0 && nDoor===0) drawerZone=openingH;
+ const iw=Math.max(8,insideW-1.2),dd=Math.max(12,D-7);
+ if(nD>0){
+   const dh=Math.max(6,(drawerZone-gap*(nD+1))/nD);
+   for(let i=0;i<nD;i++){
+     const y=openingBottom+gap+dh/2+i*(dh+gap);
+     const g=drawer(cab,y,iw,dh,dd);drawers.push(g);openStates.push(false);
+     addPart('Frentes de cajón',1,iw,dh,2);addPart('Laterales de cajón',2,dd,Math.max(5,dh-3.5),1.5);addPart('Traseras de cajón',1,iw-3,Math.max(5,dh-3.5),1.5);addPart('Fondos de cajón',1,dd-1.5,iw-3,1.2);
+   }
+   d1=drawers[0]||null;d2=drawers[1]||null;
+ }
+ const shelfBottom=openingBottom+drawerZone, shelfAvail=Math.max(0,openingTop-shelfBottom);
+ if(nS>0 && shelfAvail>T){
+   let ys=[];
+   if(shelfMode.value==='manual'){
+     renderManualShelfFields();
+     ys=[...document.querySelectorAll('.shelfPos')].map(x=>+x.value).filter(v=>isFinite(v)&&v>shelfBottom+T/2&&v<openingTop-T/2).sort((a,b)=>a-b);
+   }else{
+     for(let i=1;i<=nS;i++)ys.push(shelfBottom+(shelfAvail*i/(nS+1)));
+   }
+   ys.slice(0,nS).forEach((y,i)=>{box('Repisa '+(i+1),insideW,T,Math.max(4,D-1),0,y,-.5,wood,cab);addPart('Repisas',1,insideW,Math.max(4,D-1),T)});
+ }
+ if(nD>0&&(nS>0||nDoor>0)){const y=Math.min(openingTop-T/2,openingBottom+drawerZone);box('Separador',insideW,T,Math.max(4,D-1),0,y,-.5,wood,cab);addPart('Separador de zonas',1,insideW,Math.max(4,D-1),T)}
+ // Puertas cubren la zona superior.
+ if(nDoor>0 && shelfAvail>4){
+   const doorGap=1,doorH=Math.max(4,shelfAvail-doorGap*2),frontY=shelfBottom+shelfAvail/2;
+   if(nDoor===1){
+     const w=Math.max(5,insideW-doorGap*2),hinge=doorSide.value;
+     doors.push(makeDoor(cab,0,frontY,w,doorH,hinge,0));doorStates.push(false);addPart('Puerta',1,w,doorH,2);
+   }else{
+     const w=Math.max(5,(insideW-doorGap*3)/2);
+     doors.push(makeDoor(cab,-(w+doorGap)/2,frontY,w,doorH,'left',0));doorStates.push(false);
+     doors.push(makeDoor(cab,(w+doorGap)/2,frontY,w,doorH,'right',1));doorStates.push(false);addPart('Puertas',2,w,doorH,2);
+   }
+ }
+ travel=Math.min(Math.max(D*.72,18),60);sync();syncDoors();fit();renderData()
+}
+function fit(){let s=Math.max(d.W,d.H,d.D);camera.position.set(s*1.25,s,s*1.5);controls.target.set(0,d.H*.48,0);controls.minDistance=s*.85;controls.maxDistance=s*7;controls.update()}
+function sync(){
+ const n=drawers.length, oldValue=drawerSelect.value;
+ drawerControlBox.style.display=n?'block':'none';drawerToggle.style.display=n?'block':'none';openAll.style.display=n?'block':'none';closeBtn.style.display=n?'block':'none';
+ drawerSelect.innerHTML=drawers.map((g,i)=>`<option value="${i}">Cajón ${i+1}</option>`).join('');
+ if(n){const keep=Math.min(n-1,Math.max(0,parseInt(oldValue||'0')));drawerSelect.value=String(keep);updateDrawerButton()}
+ drawers.forEach((g,i)=>g.userData.targetZ=g.userData.closedZ+(openStates[i]?travel:0));
+}
+function syncDoors(){
+ const n=doors.length,old=doorSelect.value;
+ doorControlBox.style.display=n?'block':'none';doorToggle.style.display=n?'block':'none';openAllDoors.style.display=n?'block':'none';closeAllDoors.style.display=n?'block':'none';
+ doorSelect.innerHTML=doors.map((g,i)=>`<option value="${i}">Puerta ${i+1}</option>`).join('');
+ if(n){doorSelect.value=String(Math.min(n-1,Math.max(0,parseInt(old||'0'))));updateDoorButton()}
+ doors.forEach((g,i)=>g.userData.target=(doorStates[i]?(g.userData.hinge==='left'?-Math.PI*.58:Math.PI*.58):0));
+}
+function updateDoorButton(){const i=parseInt(doorSelect.value||'0');doorToggle.textContent=(doorStates[i]?'Cerrar':'Abrir')+' puerta '+(i+1)}
+function updateDrawerButton(){const i=parseInt(drawerSelect.value||'0');drawerToggle.textContent=(openStates[i]?'Cerrar':'Abrir')+' cajón '+(i+1)}
+const fmt=x=>(Math.round(x*100)/100).toLocaleString('es-MX',{maximumFractionDigits:2}),money=x=>'$'+x.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+function bf(p){return (p.L/2.54)*(p.A/2.54)*(p.E/2.54)/144}
+function renderData(){
+ let total=parts.reduce((s,p)=>s+bf(p)*p.qty,0);cuts.innerHTML=parts.map(p=>`<tr><td>${p.name}</td><td>${p.qty}</td><td>${fmt(p.L)}</td><td>${fmt(p.A)}</td><td>${fmt(p.E)}</td><td>${fmt(bf(p))}</td><td>${fmt(bf(p)*p.qty)}</td></tr>`).join('')+(backPart?`<tr><td>${backPart.name} · aparte</td><td>1</td><td>${fmt(backPart.L)}</td><td>${fmt(backPart.A)}</td><td>${fmt(backPart.E)}</td><td>—</td><td>—</td></tr>`:'');
+ status.textContent=`${fmt(d.W)} × ${fmt(d.H)} × ${fmt(d.D)} cm · ${drawerCount.value} cajón(es) · ${shelfCount.value} repisa(s) · ${doorCount.value} puerta(s)`;
+ if(mode.value==='solid'){metricLabel.textContent='Pies tablares';metric.textContent=fmt(total)+' PT';cost.textContent=money(total*(+bfPrice.value||0));sheetSection.classList.add('hidden')}
+ else{let result=packSheets();metricLabel.textContent='Hojas requeridas';metric.textContent=result.length+' hoja'+(result.length===1?'':'s');cost.textContent=money(result.length*(+sheetPrice.value||0));drawSheets(result);sheetSection.classList.remove('hidden')}
+ if(backPart){const area=backPart.L*backPart.A,areaSheet=(+backW.value||122)*(+backL.value||244),fraction=area/areaSheet;backMetric.textContent=fmt(fraction)+' hoja';backCost.textContent=money(fraction*(+backPrice.value||0))}else{backMetric.textContent='Sin trasera';backCost.textContent=money(0)}
+}
+function packSheets(){
+ const SW=+sheetW.value||122,SL=+sheetL.value||244,K=(+kerf.value||0)/10,items=[];
+ parts.forEach(p=>{for(let i=0;i<p.qty;i++)items.push({name:p.name,w:p.A,h:p.L})});items.sort((a,b)=>b.w*b.h-a.w*a.h);
+ let sheets=[];
+ function tryPlace(sh,it){
+  for(let i=0;i<sh.free.length;i++){let r=sh.free[i];for(let rot=0;rot<2;rot++){let w=rot?it.h:it.w,h=rot?it.w:it.h;if(w<=r.w+.0001&&h<=r.h+.0001){sh.free.splice(i,1);sh.used.push({...it,x:r.x,y:r.y,w,h});let rw=r.w-w-K,rh=r.h-h-K;if(rw>1)sh.free.push({x:r.x+w+K,y:r.y,w:rw,h:h});if(rh>1)sh.free.push({x:r.x,y:r.y+h+K,w:r.w,h:rh});return true}}}return false
+ }
+ for(const it of items){let placed=false;for(const sh of sheets)if(tryPlace(sh,it)){placed=true;break}if(!placed){let sh={used:[],free:[{x:0,y:0,w:SW,h:SL}]};sheets.push(sh);tryPlace(sh,it)}}
+ return sheets
+}
+function drawSheets(ss){const SW=+sheetW.value||122,SL=+sheetL.value||244;sheets.innerHTML=ss.map((sh,i)=>`<div><b>Hoja ${i+1} · ${fmt(SW)} × ${fmt(SL)} cm</b><div class="sheet">${sh.used.map(p=>`<div class="piece" style="left:${p.x/SW*100}%;top:${p.y/SL*100}%;width:${p.w/SW*100}%;height:${p.h/SL*100}%">${p.name}</div>`).join('')}</div></div>`).join('')}
+mode.onchange=()=>{document.querySelectorAll('.solidOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='solid'));document.querySelectorAll('.sheetOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='sheet'));renderData()}
+applyBtn.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+8||d.H<=2*d.T+8){msg.textContent='Las medidas no dejan espacio interior suficiente.';return}build();msg.textContent='V6 · zonas, puertas, repisas, 3D y despiece recalculados.'}
+drawerSelect.onchange=updateDrawerButton;
+doorSelect.onchange=updateDoorButton;
+doorToggle.onclick=()=>{const i=parseInt(doorSelect.value||'0');if(doors[i]){doorStates[i]=!doorStates[i];syncDoors()}};
+openAllDoors.onclick=()=>{doorStates=doorStates.map(()=>true);syncDoors()};
+closeAllDoors.onclick=()=>{doorStates=doorStates.map(()=>false);syncDoors()};
+shelfMode.onchange=renderManualShelfFields;shelfCount.onchange=renderManualShelfFields;
+drawerToggle.onclick=()=>{const i=parseInt(drawerSelect.value||'0');if(drawers[i]){openStates[i]=!openStates[i];sync()}};
+openAll.onclick=()=>{openStates=openStates.map(()=>true);sync()};
+closeBtn.onclick=()=>{openStates=openStates.map(()=>false);sync()};
+resetBtn.onclick=fit;
+[bfPrice,sheetPrice,sheetW,sheetL,kerf,backPrice,backW,backL].forEach(x=>x.oninput=()=>renderData());
+hasBack.onchange=()=>build();backT.onchange=()=>{if(Number(backT.value)<=0)hasBack.value='no';else if(hasBack.value==='no')hasBack.value='yes';build()};
+window.onresize=()=>{camera.aspect=viewer.clientWidth/viewer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(viewer.clientWidth,viewer.clientHeight,false)};build();
+const clock=new THREE.Clock();(function anim(){requestAnimationFrame(anim);let k=Math.min(1,(1-Math.pow(.001,clock.getDelta()))*.22);drawers.forEach(g=>g&&(g.position.z+=(g.userData.targetZ-g.position.z)*k));doors.forEach(g=>g&&(g.rotation.y+=(g.userData.target-g.rotation.y)*k));controls.update();renderer.render(scene,camera)})()
+}catch(e){const eb=document.getElementById('error');if(eb){eb.style.display='block';eb.textContent='Error al cargar el 3D: '+(e && e.message ? e.message : String(e))}console.error(e)}
+</script></body></html>
