@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>CHAKAV Diseño — V5</title>
+<title>CHAKAV Diseño — V5.1</title>
 <style>
 *{box-sizing:border-box} html,body{margin:0;background:#f2eee6;color:#241d18;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 header{background:#211b17;color:#fff;padding:12px 16px} header b{font-size:18px}.sub{font-size:12px;opacity:.75;margin-top:3px}
@@ -20,13 +20,19 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
 .sheet{position:relative;width:100%;aspect-ratio:122/244;border:2px solid #7d6a59;background:#ead7b9;margin:8px auto;max-width:250px;overflow:hidden}.piece{position:absolute;border:1px solid #4e3a2b;background:#b8865caa;font-size:8px;overflow:hidden;padding:1px}
 .note{font-size:11px;color:#746960;line-height:1.4;margin-top:8px}.hidden{display:none}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=50"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=51"}}</script>
 </head>
 <body>
-<header><b>CHAKAV Diseño — V5</b><div class="sub">Configurador paramétrico · cajones · repisas · materiales separados</div></header>
+<header><b>CHAKAV Diseño — V5.1</b><div class="sub">Configurador paramétrico · cajones · repisas · materiales separados</div></header>
 <div id="viewer"><div class="tip">1 dedo: girar<br>2 dedos: zoom + desplazar</div><div id="error">No se pudo cargar el motor 3D. Recarga con conexión a internet.</div></div>
 <div class="panel">
- <div class="controls"><button class="wood" id="b1">Abrir cajón 1</button><button class="wood" id="b2">Abrir cajón 2</button><button id="reset">Vista inicial</button><button id="close">Cerrar cajones</button></div>
+ <div class="grid2">
+  <div class="field" id="drawerControlBox"><label>Cajón a controlar</label><select id="drawerSelect"></select></div>
+  <button class="wood" id="drawerToggle">Abrir cajón</button>
+  <button class="wood" id="openAll">Abrir todos</button>
+  <button id="close">Cerrar todos</button>
+  <button id="reset">Vista inicial</button>
+ </div>
 
  <div class="title">Dimensiones</div>
  <div class="grid2">
@@ -56,6 +62,7 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
 
  <div class="title">Trasera independiente</div>
  <div class="grid2">
+  <div class="field"><label>Lleva trasera</label><select id="hasBack"><option value="yes">Sí</option><option value="no">No</option></select></div>
   <div class="field"><label>Material de trasera</label><input id="backMaterial" value="Triplay"></div>
   <div class="field"><label>Espesor trasera (cm)</label><input id="backT" type="number" value="0.6" step=".1"></div>
   <div class="field"><label>Precio hoja trasera (MXN)</label><input id="backPrice" type="number" value="450" step=".01"></div>
@@ -71,16 +78,16 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
  <div class="cards"><div class="card"><small id="metricLabel">Pies tablares</small><strong id="metric">—</strong></div><div class="card"><small>Costo material principal</small><strong id="cost">—</strong></div><div class="card"><small>Trasera independiente</small><strong id="backMetric">—</strong></div><div class="card"><small>Costo trasera</small><strong id="backCost">—</strong></div></div>
 
  <div id="sheetSection" class="hidden"><div class="title">Plan preliminar de hojas</div><div id="sheets"></div><div class="note">El acomodo considera dimensiones y kerf. Es una optimización preliminar tipo guillotina; posteriormente añadiremos veta, margen perimetral y prioridad de cortes.</div></div>
- <div class="note">Regla constructiva V5: tapa superior a ancho y fondo completos; costados debajo de la tapa; base entre costados. Cajones y repisas son configurables. La trasera es un material independiente y no contamina el cálculo del material principal.</div>
+ <div class="note">Regla constructiva V5.1: tapa superior a ancho y fondo completos; costados debajo de la tapa; base entre costados. Cajones y repisas son configurables. La trasera es un material independiente y no contamina el cálculo del material principal.</div>
 </div>
 <script type="module">
 try{
-const THREE=await import('three');const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js?v=50');
+const THREE=await import('three');const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js?v=51');
 const viewer=document.getElementById('viewer');
 const errorBox=document.getElementById('error');
-const b1=document.getElementById('b1'),b2=document.getElementById('b2'),resetBtn=document.getElementById('reset'),closeBtn=document.getElementById('close');
+const resetBtn=document.getElementById('reset'),closeBtn=document.getElementById('close'),drawerSelect=document.getElementById('drawerSelect'),drawerToggle=document.getElementById('drawerToggle'),openAll=document.getElementById('openAll'),drawerControlBox=document.getElementById('drawerControlBox');
 const mode=document.getElementById('mode'),bfPrice=document.getElementById('bfPrice'),sheetPrice=document.getElementById('sheetPrice'),sheetW=document.getElementById('sheetW'),sheetL=document.getElementById('sheetL'),kerf=document.getElementById('kerf');
-const drawerCount=document.getElementById('drawerCount'),shelfCount=document.getElementById('shelfCount'),backT=document.getElementById('backT'),backPrice=document.getElementById('backPrice'),backW=document.getElementById('backW'),backL=document.getElementById('backL'),backMetric=document.getElementById('backMetric'),backCost=document.getElementById('backCost');
+const drawerCount=document.getElementById('drawerCount'),shelfCount=document.getElementById('shelfCount'),hasBack=document.getElementById('hasBack'),backT=document.getElementById('backT'),backPrice=document.getElementById('backPrice'),backW=document.getElementById('backW'),backL=document.getElementById('backL'),backMetric=document.getElementById('backMetric'),backCost=document.getElementById('backCost');
 const applyBtn=document.getElementById('apply'),msg=document.getElementById('msg'),status=document.getElementById('status'),cuts=document.getElementById('cuts'),metricLabel=document.getElementById('metricLabel'),metric=document.getElementById('metric'),cost=document.getElementById('cost'),sheetSection=document.getElementById('sheetSection'),sheets=document.getElementById('sheets');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e1d4);
 const camera=new THREE.PerspectiveCamera(38,viewer.clientWidth/viewer.clientHeight,.1,1500),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(viewer.clientWidth,viewer.clientHeight);renderer.shadowMap.enabled=true;viewer.appendChild(renderer.domElement);
@@ -107,9 +114,12 @@ function build(){
  box('Base inferior',insideW,T,D,0,T/2,0,wood,cab);addPart('Base inferior',1,insideW,D,T);
 
  // Trasera: pieza independiente, no entra en parts/material principal.
- const bt=Math.max(.2,+backT.value||.6),backH=Math.max(1,sideH-T);
- box('Trasera independiente',insideW,backH,bt,0,T+backH/2,-D/2+bt/2,backMat,cab);
- backPart={name:'Trasera independiente',qty:1,L:backH,A:insideW,E:bt};
+ const rawBackT=Number(backT.value),backH=Math.max(1,sideH-T),useBack=(hasBack.value==='yes' && isFinite(rawBackT) && rawBackT>0);
+ if(useBack){
+   const bt=rawBackT;
+   box('Trasera independiente',insideW,backH,bt,0,T+backH/2,-D/2+bt/2,backMat,cab);
+   backPart={name:'Trasera independiente',qty:1,L:backH,A:insideW,E:bt};
+ }
 
  const openingBottom=T,openingTop=sideH,openingH=Math.max(1,openingTop-openingBottom),gap=1.1;
  // Los cajones ocupan la zona inferior; las repisas, el espacio superior restante.
@@ -138,10 +148,13 @@ function build(){
 }
 function fit(){let s=Math.max(d.W,d.H,d.D);camera.position.set(s*1.25,s,s*1.5);controls.target.set(0,d.H*.48,0);controls.minDistance=s*.85;controls.maxDistance=s*7;controls.update()}
 function sync(){
- b1.style.display=drawers.length>=1?'block':'none';b2.style.display=drawers.length>=2?'block':'none';closeBtn.style.display=drawers.length?'block':'none';
- b1.textContent=((openStates[0]?'Cerrar':'Abrir')+' cajón 1');b2.textContent=((openStates[1]?'Cerrar':'Abrir')+' cajón 2');
+ const n=drawers.length, oldValue=drawerSelect.value;
+ drawerControlBox.style.display=n?'block':'none';drawerToggle.style.display=n?'block':'none';openAll.style.display=n?'block':'none';closeBtn.style.display=n?'block':'none';
+ drawerSelect.innerHTML=drawers.map((g,i)=>`<option value="${i}">Cajón ${i+1}</option>`).join('');
+ if(n){const keep=Math.min(n-1,Math.max(0,parseInt(oldValue||'0')));drawerSelect.value=String(keep);updateDrawerButton()}
  drawers.forEach((g,i)=>g.userData.targetZ=g.userData.closedZ+(openStates[i]?travel:0));
 }
+function updateDrawerButton(){const i=parseInt(drawerSelect.value||'0');drawerToggle.textContent=(openStates[i]?'Cerrar':'Abrir')+' cajón '+(i+1)}
 const fmt=x=>(Math.round(x*100)/100).toLocaleString('es-MX',{maximumFractionDigits:2}),money=x=>'$'+x.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
 function bf(p){return (p.L/2.54)*(p.A/2.54)*(p.E/2.54)/144}
 function renderData(){
@@ -149,7 +162,7 @@ function renderData(){
  status.textContent=`${fmt(d.W)} × ${fmt(d.H)} × ${fmt(d.D)} cm · ${drawerCount.value} cajón(es) · ${shelfCount.value} repisa(s)`;
  if(mode.value==='solid'){metricLabel.textContent='Pies tablares';metric.textContent=fmt(total)+' PT';cost.textContent=money(total*(+bfPrice.value||0));sheetSection.classList.add('hidden')}
  else{let result=packSheets();metricLabel.textContent='Hojas requeridas';metric.textContent=result.length+' hoja'+(result.length===1?'':'s');cost.textContent=money(result.length*(+sheetPrice.value||0));drawSheets(result);sheetSection.classList.remove('hidden')}
- if(backPart){const area=backPart.L*backPart.A,areaSheet=(+backW.value||122)*(+backL.value||244),fraction=area/areaSheet;backMetric.textContent=fmt(fraction)+' hoja';backCost.textContent=money(fraction*(+backPrice.value||0))}
+ if(backPart){const area=backPart.L*backPart.A,areaSheet=(+backW.value||122)*(+backL.value||244),fraction=area/areaSheet;backMetric.textContent=fmt(fraction)+' hoja';backCost.textContent=money(fraction*(+backPrice.value||0))}else{backMetric.textContent='Sin trasera';backCost.textContent=money(0)}
 }
 function packSheets(){
  const SW=+sheetW.value||122,SL=+sheetL.value||244,K=(+kerf.value||0)/10,items=[];
@@ -163,9 +176,14 @@ function packSheets(){
 }
 function drawSheets(ss){const SW=+sheetW.value||122,SL=+sheetL.value||244;sheets.innerHTML=ss.map((sh,i)=>`<div><b>Hoja ${i+1} · ${fmt(SW)} × ${fmt(SL)} cm</b><div class="sheet">${sh.used.map(p=>`<div class="piece" style="left:${p.x/SW*100}%;top:${p.y/SL*100}%;width:${p.w/SW*100}%;height:${p.h/SL*100}%">${p.name}</div>`).join('')}</div></div>`).join('')}
 mode.onchange=()=>{document.querySelectorAll('.solidOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='solid'));document.querySelectorAll('.sheetOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='sheet'));renderData()}
-applyBtn.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+8||d.H<=2*d.T+8){msg.textContent='Las medidas no dejan espacio interior suficiente.';return}build();msg.textContent='V5 · configuración, 3D, despiece y costos recalculados.'}
-b1.onclick=()=>{if(drawers[0]){openStates[0]=!openStates[0];sync()}};b2.onclick=()=>{if(drawers[1]){openStates[1]=!openStates[1];sync()}};closeBtn.onclick=()=>{openStates=openStates.map(()=>false);sync()};resetBtn.onclick=fit;
+applyBtn.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+8||d.H<=2*d.T+8){msg.textContent='Las medidas no dejan espacio interior suficiente.';return}build();msg.textContent='V5.1 · configuración, 3D, despiece y costos recalculados.'}
+drawerSelect.onchange=updateDrawerButton;
+drawerToggle.onclick=()=>{const i=parseInt(drawerSelect.value||'0');if(drawers[i]){openStates[i]=!openStates[i];sync()}};
+openAll.onclick=()=>{openStates=openStates.map(()=>true);sync()};
+closeBtn.onclick=()=>{openStates=openStates.map(()=>false);sync()};
+resetBtn.onclick=fit;
 [bfPrice,sheetPrice,sheetW,sheetL,kerf,backPrice,backW,backL].forEach(x=>x.oninput=()=>renderData());
+hasBack.onchange=()=>build();backT.onchange=()=>{if(Number(backT.value)<=0)hasBack.value='no';else if(hasBack.value==='no')hasBack.value='yes';build()};
 window.onresize=()=>{camera.aspect=viewer.clientWidth/viewer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(viewer.clientWidth,viewer.clientHeight,false)};build();
 const clock=new THREE.Clock();(function anim(){requestAnimationFrame(anim);let k=Math.min(1,(1-Math.pow(.001,clock.getDelta()))*.22);drawers.forEach(g=>g&&(g.position.z+=(g.userData.targetZ-g.position.z)*k));controls.update();renderer.render(scene,camera)})()
 }catch(e){const eb=document.getElementById('error');if(eb){eb.style.display='block';eb.textContent='Error al cargar el 3D: '+(e && e.message ? e.message : String(e))}console.error(e)}
