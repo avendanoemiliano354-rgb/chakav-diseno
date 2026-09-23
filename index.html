@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>CHAKAV Diseño V1</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f0e9;color:#211b16}
+header{padding:14px 16px;background:#211b16;color:white} header b{font-size:18px}.sub{opacity:.75;font-size:12px;margin-top:3px}
+#stage{height:62vh;min-height:430px;position:relative;overflow:hidden;perspective:900px;touch-action:none;background:linear-gradient(#ece7dc,#d9d0c0)}
+#scene{position:absolute;left:50%;top:48%;width:260px;height:340px;transform-style:preserve-3d;transform:translate(-50%,-50%) rotateX(-12deg) rotateY(-25deg)}
+.part{position:absolute;background:#8b5b36;border:1px solid #50331f;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);transform-style:preserve-3d}
+.side{width:20px;height:300px;top:20px}.left{left:20px}.right{right:20px}
+.top,.bottom{left:20px;width:220px;height:20px}.top{top:0}.bottom{bottom:0}
+.back{left:40px;top:20px;width:180px;height:300px;background:#6f472c;transform:translateZ(-55px)}
+.drawer{left:45px;width:170px;height:115px;background:#a26a3e;border:2px solid #4d301d;border-radius:3px;transition:transform .45s ease;transform:translateZ(0)}
+#d1{top:42px} #d2{top:175px}
+.handle{position:absolute;width:52px;height:8px;background:#2c2926;border-radius:6px;left:57px;top:52px}
+.label{position:absolute;left:12px;top:12px;background:#fff9;padding:7px 10px;border-radius:10px;font-size:12px}
+.controls{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:white}
+button{border:0;border-radius:12px;padding:14px 8px;font-size:15px;font-weight:650;background:#2c2926;color:white}
+button.secondary{background:#8b5b36}.status{grid-column:1/-1;text-align:center;font-size:13px;color:#675b51}
+</style>
+</head>
+<body>
+<header><b>CHAKAV Diseño — V1</b><div class="sub">Prueba: giro con dedo + cajones hacia enfrente</div></header>
+<div id="stage">
+ <div class="label">Arrastra con un dedo para girar</div>
+ <div id="scene">
+   <div class="part top"></div><div class="part bottom"></div>
+   <div class="part side left"></div><div class="part side right"></div><div class="part back"></div>
+   <div class="part drawer" id="d1"><div class="handle"></div></div>
+   <div class="part drawer" id="d2"><div class="handle"></div></div>
+ </div>
+</div>
+<div class="controls">
+ <button class="secondary" id="b1">Abrir cajón 1</button><button class="secondary" id="b2">Abrir cajón 2</button>
+ <button id="reset">Vista inicial</button><button id="close">Cerrar ambos</button>
+ <div class="status" id="status">60 × 40 × 40 cm · espesor 1"</div>
+</div>
+<script>
+const scene=document.getElementById('scene'), stage=document.getElementById('stage');
+let rx=-12, ry=-25, dragging=false, px=0, py=0;
+function draw(){scene.style.transform=`translate(-50%,-50%) rotateX(${rx}deg) rotateY(${ry}deg)`;}
+function start(x,y){dragging=true;px=x;py=y}
+function move(x,y){if(!dragging)return; ry+=(x-px)*.55; rx-=(y-py)*.4; rx=Math.max(-70,Math.min(70,rx));px=x;py=y;draw()}
+stage.addEventListener('touchstart',e=>{let t=e.touches[0];start(t.clientX,t.clientY)},{passive:true});
+stage.addEventListener('touchmove',e=>{let t=e.touches[0];move(t.clientX,t.clientY);e.preventDefault()},{passive:false});
+stage.addEventListener('touchend',()=>dragging=false);
+stage.addEventListener('mousedown',e=>start(e.clientX,e.clientY));
+window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));window.addEventListener('mouseup',()=>dragging=false);
+let open1=false,open2=false;
+function drawer(id,open){document.getElementById(id).style.transform=`translateZ(${open?150:0}px)`;}
+document.getElementById('b1').onclick=()=>{open1=!open1;drawer('d1',open1);b1.textContent=(open1?'Cerrar':'Abrir')+' cajón 1'};
+document.getElementById('b2').onclick=()=>{open2=!open2;drawer('d2',open2);b2.textContent=(open2?'Cerrar':'Abrir')+' cajón 2'};
+document.getElementById('close').onclick=()=>{open1=open2=false;drawer('d1',false);drawer('d2',false);b1.textContent='Abrir cajón 1';b2.textContent='Abrir cajón 2'};
+document.getElementById('reset').onclick=()=>{rx=-12;ry=-25;draw()};
+</script></body></html>
