@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CHAKAV Diseño — V3</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#f2eee6;color:#241d18;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#211b17;color:#fff;padding:12px 16px}
+header b{font-size:18px}.sub{font-size:12px;opacity:.74;margin-top:3px}
+#viewer{height:58vh;min-height:410px;position:relative;background:linear-gradient(#eee9df,#d8cebd);overflow:hidden;touch-action:none}
+#viewer canvas{display:block;width:100%;height:100%}
+.tip{position:absolute;z-index:2;left:10px;top:10px;background:#ffffffe8;padding:8px 10px;border-radius:10px;font-size:12px;line-height:1.35;pointer-events:none}
+#error{display:none;position:absolute;inset:15px;z-index:5;background:#fff;padding:18px;border-radius:12px;color:#7a2b22}
+.panel{background:#fff;padding:12px;border-top:1px solid #ddd3c6}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+button{min-height:46px;border:0;border-radius:12px;padding:10px;font-size:14px;font-weight:700;background:#2b2825;color:#fff}
+button.wood{background:#966139}
+.section-title{font-weight:800;font-size:15px;margin:14px 0 9px}
+.dimgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.field{background:#f5f1ea;border:1px solid #ded5ca;border-radius:10px;padding:8px}
+.field label{display:block;font-size:11px;color:#6e6259;margin-bottom:4px}
+.field input{width:100%;font-size:17px;border:0;background:transparent;outline:none;color:#211b17}
+.apply{width:100%;margin-top:9px;background:#725039}
+.status{text-align:center;font-size:12px;color:#675d55;padding:10px 0 0}
+.msg{min-height:18px;text-align:center;font-size:12px;color:#77533c;margin-top:7px}
+.tablewrap{overflow-x:auto;border:1px solid #e0d8cf;border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:540px;font-size:12px}
+th,td{padding:8px 7px;border-bottom:1px solid #e7e0d8;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{background:#f5f1ea;font-size:11px;color:#62584f}
+tfoot td{font-weight:800;background:#faf7f2}
+.note{font-size:11px;color:#746960;line-height:1.4;margin-top:8px}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}
+</script>
+</head>
+<body>
+<header><b>CHAKAV Diseño — V3</b><div class="sub">3D paramétrico + despiece automático</div></header>
+
+<div id="viewer">
+ <div class="tip">1 dedo: girar<br>2 dedos: zoom + desplazar</div>
+ <div id="error">No se pudo cargar el motor 3D. Recarga la página con conexión a internet.</div>
+</div>
+
+<div class="panel">
+ <div class="controls">
+  <button class="wood" id="b1">Abrir cajón 1</button>
+  <button class="wood" id="b2">Abrir cajón 2</button>
+  <button id="reset">Vista inicial</button>
+  <button id="close">Cerrar ambos</button>
+ </div>
+
+ <div class="section-title">Dimensiones del mueble</div>
+ <div class="dimgrid">
+  <div class="field"><label for="width">Ancho (cm)</label><input id="width" type="number" inputmode="decimal" value="40" min="30" max="150" step="0.1"></div>
+  <div class="field"><label for="height">Alto (cm)</label><input id="height" type="number" inputmode="decimal" value="60" min="40" max="180" step="0.1"></div>
+  <div class="field"><label for="depth">Fondo (cm)</label><input id="depth" type="number" inputmode="decimal" value="40" min="25" max="100" step="0.1"></div>
+  <div class="field"><label for="thick">Espesor (cm)</label><input id="thick" type="number" inputmode="decimal" value="2.54" min="1.2" max="5" step="0.01"></div>
+ </div>
+ <button class="apply" id="apply">Aplicar cambios al mueble</button>
+ <div class="msg" id="msg" aria-live="polite"></div>
+ <div class="status" id="status">40 × 60 × 40 cm · tablero 2.54 cm</div>
+
+ <div class="section-title">Despiece automático</div>
+ <div class="tablewrap">
+  <table>
+   <thead><tr><th>Pieza</th><th>Cant.</th><th>Largo</th><th>Ancho</th><th>Esp.</th></tr></thead>
+   <tbody id="cutbody"></tbody>
+   <tfoot><tr><td colspan="4">Piezas totales</td><td id="totalparts">—</td></tr></tfoot>
+  </table>
+ </div>
+ <div class="note">Medidas en cm. El despiece se recalcula junto con el modelo. En esta V3 la caja de cada cajón usa laterales de 1.5 cm y fondo de 1.2 cm; más adelante esos espesores serán configurables por material/herraje.</div>
+</div>
+
+<script type="module">
+try{
+ const THREE=await import('three');
+ const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js');
+
+ const viewer=document.getElementById('viewer');
+ const scene=new THREE.Scene();
+ scene.background=new THREE.Color(0xe8e1d4);
+ const camera=new THREE.PerspectiveCamera(38,viewer.clientWidth/viewer.clientHeight,.1,1500);
+ const renderer=new THREE.WebGLRenderer({antialias:true});
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+ renderer.setSize(viewer.clientWidth,viewer.clientHeight);
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ viewer.appendChild(renderer.domElement);
+
+ const controls=new OrbitControls(camera,renderer.domElement);
+ controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=true;controls.screenSpacePanning=true;
+ controls.touches.ONE=THREE.TOUCH.ROTATE;controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
+ controls.minDistance=45;controls.maxDistance=450;
+
+ scene.add(new THREE.HemisphereLight(0xfff7e8,0x75695f,2.1));
+ const key=new THREE.DirectionalLight(0xffffff,2.5);key.position.set(70,110,85);key.castShadow=true;scene.add(key);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({color:0xd6ccbd,roughness:1}));
+ floor.rotation.x=-Math.PI/2;floor.position.y=-1.3;floor.receiveShadow=true;scene.add(floor);
+
+ const wood=new THREE.MeshStandardMaterial({color:0x8b5834,roughness:.62});
+ const woodFront=new THREE.MeshStandardMaterial({color:0xa36a3d,roughness:.58});
+ const drawerWood=new THREE.MeshStandardMaterial({color:0x98603a,roughness:.67});
+ const backMat=new THREE.MeshStandardMaterial({color:0x70462d,roughness:.75});
+ const dark=new THREE.MeshStandardMaterial({color:0x292623,roughness:.42,metalness:.15});
+
+ let dims={W:40,H:60,D:40,T:2.54};
+ let cabinet=null,d1=null,d2=null,open1=false,open2=false,travel=29;
+ const b1=document.getElementById('b1'),b2=document.getElementById('b2');
+
+ function box(name,w,h,d,x,y,z,mat,parent){
+   const m=new THREE.Mesh(new THREE.BoxGeometry(Math.max(.05,w),Math.max(.05,h),Math.max(.05,d)),mat);
+   m.name=name;m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
+ }
+ function disposeGroup(g){
+   if(!g)return;
+   g.traverse(o=>{if(o.geometry)o.geometry.dispose()});
+   scene.remove(g);
+ }
+ function makeDrawer(parent,y,innerW,drawerH,drawerD,D){
+   const g=new THREE.Group();g.position.set(0,y,D/2-1+.25);g.userData.closedZ=g.position.z;parent.add(g);
+   const sideT=1.5,bottomT=1.2,frontT=2;
+   box('Frente',innerW,drawerH,frontT,0,0,0,woodFront,g);
+   const sideH=Math.max(5,drawerH-3.5),sideZ=-drawerD/2;
+   box('Lateral izquierdo',sideT,sideH,drawerD,-innerW/2+sideT/2,-1,sideZ,drawerWood,g);
+   box('Lateral derecho',sideT,sideH,drawerD,innerW/2-sideT/2,-1,sideZ,drawerWood,g);
+   box('Trasera cajón',Math.max(3,innerW-2*sideT),sideH,sideT,0,-1,-drawerD+sideT/2,drawerWood,g);
+   box('Fondo cajón',Math.max(3,innerW-2*sideT),bottomT,Math.max(3,drawerD-sideT),0,-drawerH/2+2.2,-drawerD/2,drawerWood,g);
+   box('Jaladera',Math.min(9,innerW*.35),1.5,1.8,0,0,frontT/2+1,dark,g);
+   g.userData.targetZ=g.userData.closedZ;return g;
+ }
+ function build(){
+   disposeGroup(cabinet);
+   const {W,H,D,T}=dims;
+   cabinet=new THREE.Group();scene.add(cabinet);
+   box('Costado izquierdo',T,H,D,-W/2+T/2,H/2,0,wood,cabinet);
+   box('Costado derecho',T,H,D,W/2-T/2,H/2,0,wood,cabinet);
+   box('Tapa',W-2*T,T,D,0,H-T/2,0,wood,cabinet);
+   box('Base',W-2*T,T,D,0,T/2,0,wood,cabinet);
+   box('Trasera',W-2*T,H-2*T,T,0,H/2,-D/2+T/2,backMat,cabinet);
+
+   const innerW=W-2*T-1.2;
+   const openingH=H-2*T;
+   const gap=1.1;
+   const drawerH=Math.max(8,(openingH-3*gap)/2);
+   const drawerD=Math.max(12,D-7);
+   const yLow=T+gap+drawerH/2;
+   const yHigh=H-T-gap-drawerH/2;
+   d1=makeDrawer(cabinet,yHigh,innerW,drawerH,drawerD,D);
+   d2=makeDrawer(cabinet,yLow,innerW,drawerH,drawerD,D);
+   box('Travesaño',W-2*T,T,3,0,H/2,D/2-1.6,wood,cabinet);
+
+   travel=Math.min(Math.max(D*.72,18),60);
+   open1=open2=false;syncButtons();
+   controls.target.set(0,H*.48,0);
+   const span=Math.max(W,H,D);
+   camera.position.set(span*1.25,span*1.0,span*1.5);
+   controls.minDistance=span*.85;controls.maxDistance=span*7;
+   controls.update();
+   updateCutlist();
+ }
+ function syncButtons(){
+   b1.textContent=(open1?'Cerrar':'Abrir')+' cajón 1';
+   b2.textContent=(open2?'Cerrar':'Abrir')+' cajón 2';
+   if(d1)d1.userData.targetZ=d1.userData.closedZ+(open1?travel:0);
+   if(d2)d2.userData.targetZ=d2.userData.closedZ+(open2?travel:0);
+ }
+ function n(v){return (Math.round(v*100)/100).toLocaleString('es-MX',{maximumFractionDigits:2})}
+ function updateCutlist(){
+   const {W,H,D,T}=dims,innerW=W-2*T-1.2,openingH=H-2*T,gap=1.1;
+   const dh=Math.max(8,(openingH-3*gap)/2),dd=Math.max(12,D-7),sideH=Math.max(5,dh-3.5);
+   const rows=[
+    ['Costados',2,H,D,T],
+    ['Tapa',1,W-2*T,D,T],
+    ['Base',1,W-2*T,D,T],
+    ['Trasera',1,H-2*T,W-2*T,T],
+    ['Travesaño central',1,W-2*T,3,T],
+    ['Frentes de cajón',2,innerW,dh,2],
+    ['Laterales de cajón',4,dd,sideH,1.5],
+    ['Traseras de cajón',2,innerW-3,sideH,1.5],
+    ['Fondos de cajón',2,dd-1.5,innerW-3,1.2]
+   ];
+   document.getElementById('cutbody').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${n(r[2])}</td><td>${n(r[3])}</td><td>${n(r[4])}</td></tr>`).join('');
+   document.getElementById('totalparts').textContent=rows.reduce((s,r)=>s+r[1],0);
+   document.getElementById('status').textContent=`${n(W)} × ${n(H)} × ${n(D)} cm · tablero ${n(T)} cm`;
+ }
+ function read(id,min,max){const v=Number(document.getElementById(id).value);return Number.isFinite(v)&&v>=min&&v<=max?v:null}
+ document.getElementById('apply').addEventListener('click',()=>{
+   const W=read('width',30,150),H=read('height',40,180),D=read('depth',25,100),T=read('thick',1.2,5),msg=document.getElementById('msg');
+   if([W,H,D,T].some(v=>v===null)){msg.textContent='Revisa las medidas: hay un valor fuera del rango permitido.';return}
+   if(W<=2*T+10||H<=2*T+20||D<=T+15){msg.textContent='Estas medidas no dejan espacio suficiente para construir los cajones.';return}
+   dims={W,H,D,T};build();msg.textContent='Modelo y despiece actualizados.';
+ });
+ b1.addEventListener('click',()=>{open1=!open1;syncButtons()});
+ b2.addEventListener('click',()=>{open2=!open2;syncButtons()});
+ document.getElementById('close').addEventListener('click',()=>{open1=open2=false;syncButtons()});
+ document.getElementById('reset').addEventListener('click',()=>{
+   const s=Math.max(dims.W,dims.H,dims.D);camera.position.set(s*1.25,s*1.0,s*1.5);controls.target.set(0,dims.H*.48,0);controls.update();
+ });
+ function resize(){const w=viewer.clientWidth,h=viewer.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false)}
+ window.addEventListener('resize',resize);
+ build();
+ const clock=new THREE.Clock();
+ function animate(){
+   requestAnimationFrame(animate);const k=Math.min(1,(1-Math.pow(.001,clock.getDelta()))*.22);
+   for(const g of [d1,d2])if(g)g.position.z+=(g.userData.targetZ-g.position.z)*k;
+   controls.update();renderer.render(scene,camera);
+ }
+ animate();
+}catch(e){document.getElementById('error').style.display='block';console.error(e)}
+</script>
+</body>
+</html>
