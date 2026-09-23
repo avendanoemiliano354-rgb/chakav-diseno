@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>CHAKAV Diseño — V7.1</title>
+<title>CHAKAV Diseño — V7.2</title>
 <style>
 *{box-sizing:border-box} html,body{margin:0;background:#f2eee6;color:#241d18;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 header{background:#211b17;color:#fff;padding:12px 16px} header b{font-size:18px}.sub{font-size:12px;opacity:.75;margin-top:3px}
@@ -20,10 +20,10 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
 .sheet{position:relative;width:100%;aspect-ratio:122/244;border:2px solid #7d6a59;background:#ead7b9;margin:8px auto;max-width:250px;overflow:hidden}.piece{position:absolute;border:1px solid #4e3a2b;background:#b8865caa;font-size:8px;overflow:hidden;padding:1px}
 .note{font-size:11px;color:#746960;line-height:1.4;margin-top:8px}.hidden{display:none}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=71"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js?v=72"}}</script>
 </head>
 <body>
-<header><b>CHAKAV Diseño — V7.1</b><div class="sub">Cajones por lado · divisiones protegidas · módulos configurables</div></header>
+<header><b>CHAKAV Diseño — V7.2</b><div class="sub">Módulos asimétricos · cajones cofrados · puertas a piso</div></header>
 <div id="viewer"><div class="tip">1 dedo: girar<br>2 dedos: zoom + desplazar</div><div id="error">No se pudo cargar el motor 3D. Recarga con conexión a internet.</div></div>
 <div class="panel">
  <div class="grid2">
@@ -48,10 +48,12 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
   <div class="field"><label>Espesor principal (cm)</label><input id="T" type="number" value="2.54" step=".01"></div>
  </div>
 
- <div class="title">Configuración interior V7</div>
+ <div class="title">Configuración interior V7.2</div>
  <div class="grid2">
   <div class="field"><label>Número de cajones por columna</label><input id="drawerCount" type="number" value="2" min="0" max="6" step="1"></div>
   <div class="field"><label>Ubicación de cajones</label><select id="drawerPlacement"><option value="full">Todo el ancho</option><option value="left">Solo izquierda</option><option value="right">Solo derecha</option><option value="both">Izquierda y derecha</option></select></div>
+  <div class="field"><label>Lado libre cuando hay cajones a un lado</label><select id="freeSideMode"><option value="door">Puerta hasta abajo</option><option value="shelves">Repisas abiertas</option><option value="open">Espacio abierto</option></select></div>
+  <div class="field"><label>Repisas en lado libre</label><input id="freeSideShelves" type="number" value="3" min="0" max="8" step="1"></div>
   <div class="field"><label>Número de repisas</label><input id="shelfCount" type="number" value="0" min="0" max="8" step="1"></div>
   <div class="field"><label>Número de puertas</label><input id="doorCount" type="number" value="0" min="0" max="8" step="1"></div>
   <div class="field"><label>Número de módulos verticales</label><input id="moduleCount" type="number" value="1" min="1" max="6" step="1"></div>
@@ -63,7 +65,7 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
  <div id="doorConfigPanel" class="hidden" style="margin-top:9px"></div>
  <div id="modulePanel" style="margin-top:9px"></div>
  <div id="manualShelves" class="hidden" style="margin-top:9px"></div>
- <div class="note">V7.1 permite colocar cajones a todo lo ancho, sólo a la izquierda, sólo a la derecha o en ambos lados. Cuando existen cajones laterales, las divisiones verticales comienzan encima de la zona de cajones para no atravesarlos.</div>
+ <div class="note">V7.2: si los cajones están sólo a un lado, se crea una división vertical completa que los cofra. El lado libre puede quedar abierto, llevar repisas propias o una puerta de altura completa hasta la base. Las puertas del lado de cajones comienzan arriba de los cajones.</div>
 
  <div class="title">Material y precio</div>
  <div class="grid2">
@@ -94,17 +96,17 @@ table{border-collapse:collapse;width:100%;min-width:760px;font-size:11px}th,td{p
  <div class="cards"><div class="card"><small id="metricLabel">Pies tablares</small><strong id="metric">—</strong></div><div class="card"><small>Costo material principal</small><strong id="cost">—</strong></div><div class="card"><small>Trasera independiente</small><strong id="backMetric">—</strong></div><div class="card"><small>Costo trasera</small><strong id="backCost">—</strong></div></div>
 
  <div id="sheetSection" class="hidden"><div class="title">Plan preliminar de hojas</div><div id="sheets"></div><div class="note">El acomodo considera dimensiones y kerf. Es una optimización preliminar tipo guillotina; posteriormente añadiremos veta, margen perimetral y prioridad de cortes.</div></div>
- <div class="note">Regla constructiva V7.1: tapa superior a ancho y fondo completos; costados debajo de la tapa; base entre costados. Cajones y repisas son configurables. La trasera es un material independiente y no contamina el cálculo del material principal.</div>
+ <div class="note">Regla constructiva V7.2: tapa superior a ancho y fondo completos; costados debajo de la tapa; base entre costados. Cajones y repisas son configurables. La trasera es un material independiente y no contamina el cálculo del material principal.</div>
 </div>
 <script type="module">
 try{
-const THREE=await import('three');const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js?v=71');
+const THREE=await import('three');const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js?v=72');
 const viewer=document.getElementById('viewer');
 const errorBox=document.getElementById('error');
 const resetBtn=document.getElementById('reset'),closeBtn=document.getElementById('close'),drawerSelect=document.getElementById('drawerSelect'),drawerToggle=document.getElementById('drawerToggle'),openAll=document.getElementById('openAll'),drawerControlBox=document.getElementById('drawerControlBox');
 const doorSelect=document.getElementById('doorSelect'),doorToggle=document.getElementById('doorToggle'),openAllDoors=document.getElementById('openAllDoors'),closeAllDoors=document.getElementById('closeAllDoors'),doorControlBox=document.getElementById('doorControlBox');
 const mode=document.getElementById('mode'),bfPrice=document.getElementById('bfPrice'),sheetPrice=document.getElementById('sheetPrice'),sheetW=document.getElementById('sheetW'),sheetL=document.getElementById('sheetL'),kerf=document.getElementById('kerf');
-const drawerCount=document.getElementById('drawerCount'),drawerPlacement=document.getElementById('drawerPlacement'),shelfCount=document.getElementById('shelfCount'),doorCount=document.getElementById('doorCount'),moduleCount=document.getElementById('moduleCount'),doorConfigSelect=document.getElementById('doorConfigSelect'),doorConfigPanel=document.getElementById('doorConfigPanel'),modulePanel=document.getElementById('modulePanel'),doorSide=document.getElementById('doorSide'),drawerZonePct=document.getElementById('drawerZonePct'),shelfMode=document.getElementById('shelfMode'),manualShelves=document.getElementById('manualShelves'),hasBack=document.getElementById('hasBack'),backT=document.getElementById('backT'),backPrice=document.getElementById('backPrice'),backW=document.getElementById('backW'),backL=document.getElementById('backL'),backMetric=document.getElementById('backMetric'),backCost=document.getElementById('backCost');
+const drawerCount=document.getElementById('drawerCount'),drawerPlacement=document.getElementById('drawerPlacement'),freeSideMode=document.getElementById('freeSideMode'),freeSideShelves=document.getElementById('freeSideShelves'),shelfCount=document.getElementById('shelfCount'),doorCount=document.getElementById('doorCount'),moduleCount=document.getElementById('moduleCount'),doorConfigSelect=document.getElementById('doorConfigSelect'),doorConfigPanel=document.getElementById('doorConfigPanel'),modulePanel=document.getElementById('modulePanel'),doorSide=document.getElementById('doorSide'),drawerZonePct=document.getElementById('drawerZonePct'),shelfMode=document.getElementById('shelfMode'),manualShelves=document.getElementById('manualShelves'),hasBack=document.getElementById('hasBack'),backT=document.getElementById('backT'),backPrice=document.getElementById('backPrice'),backW=document.getElementById('backW'),backL=document.getElementById('backL'),backMetric=document.getElementById('backMetric'),backCost=document.getElementById('backCost');
 const applyBtn=document.getElementById('apply'),msg=document.getElementById('msg'),status=document.getElementById('status'),cuts=document.getElementById('cuts'),metricLabel=document.getElementById('metricLabel'),metric=document.getElementById('metric'),cost=document.getElementById('cost'),sheetSection=document.getElementById('sheetSection'),sheets=document.getElementById('sheets');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xe8e1d4);
 const camera=new THREE.PerspectiveCamera(38,viewer.clientWidth/viewer.clientHeight,.1,1500),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(viewer.clientWidth,viewer.clientHeight);renderer.shadowMap.enabled=true;viewer.appendChild(renderer.domElement);
@@ -167,61 +169,90 @@ function build(){
  }
 
  const openingBottom=T,openingTop=sideH,openingH=Math.max(1,openingTop-openingBottom),gap=1.1;
- // Los cajones ocupan la zona inferior; las repisas, el espacio superior restante.
  let drawerZone=nD>0 ? openingH*Math.max(.15,Math.min(.85,(+drawerZonePct.value||45)/100)) : 0;
- const placement=drawerPlacement.value||'full';
+ const placement=drawerPlacement.value||'full',asym=nD>0&&(placement==='left'||placement==='right');
  if(nD>0 && nS===0 && nDoor===0 && placement==='full') drawerZone=openingH;
- const dd=Math.max(12,D-7),drawerColumns=[];
+ const dd=Math.max(12,D-7),halfGap=T,halfW=Math.max(8,(insideW-halfGap)/2),leftX=-insideW/4-T/4,rightX=insideW/4+T/4;
+ const drawerCols=[];
  if(nD>0){
-   if(placement==='full') drawerColumns.push({x:0,w:Math.max(8,insideW-1.2),label:''});
-   else{
-     const halfGap=Math.max(T,1.2),colW=Math.max(8,(insideW-halfGap)/2-1.0);
-     if(placement==='left'||placement==='both') drawerColumns.push({x:-insideW/4-halfGap/4,w:colW,label:' izquierdo'});
-     if(placement==='right'||placement==='both') drawerColumns.push({x:insideW/4+halfGap/4,w:colW,label:' derecho'});
-   }
+   if(placement==='full')drawerCols.push({x:0,w:Math.max(8,insideW-1.2),label:''});
+   if(placement==='left'||placement==='both')drawerCols.push({x:leftX,w:Math.max(8,halfW-1),label:' izquierdo'});
+   if(placement==='right'||placement==='both')drawerCols.push({x:rightX,w:Math.max(8,halfW-1),label:' derecho'});
    const dh=Math.max(6,(drawerZone-gap*(nD+1))/nD);
-   drawerColumns.forEach(col=>{
-     for(let i=0;i<nD;i++){
-       const y=openingBottom+gap+dh/2+i*(dh+gap);
-       const g=drawer(cab,col.x,y,col.w,dh,dd);drawers.push(g);openStates.push(false);
-       addPart('Frentes de cajón'+col.label,1,col.w,dh,2);addPart('Laterales de cajón'+col.label,2,dd,Math.max(5,dh-3.5),1.5);addPart('Traseras de cajón'+col.label,1,col.w-3,Math.max(5,dh-3.5),1.5);addPart('Fondos de cajón'+col.label,1,dd-1.5,col.w-3,1.2);
-     }
-   });
+   drawerCols.forEach(col=>{for(let i=0;i<nD;i++){
+     const y=openingBottom+gap+dh/2+i*(dh+gap),g=drawer(cab,col.x,y,col.w,dh,dd);
+     drawers.push(g);openStates.push(false);
+     addPart('Frentes de cajón'+col.label,1,col.w,dh,2);addPart('Laterales de cajón'+col.label,2,dd,Math.max(5,dh-3.5),1.5);addPart('Traseras de cajón'+col.label,1,col.w-3,Math.max(5,dh-3.5),1.5);addPart('Fondos de cajón'+col.label,1,dd-1.5,col.w-3,1.2);
+   }});
    d1=drawers[0]||null;d2=drawers[1]||null;
  }
- // Las divisiones verticales nunca atraviesan la zona de cajones.
+
+ // Cofrado obligatorio cuando los cajones ocupan sólo un lado.
+ // La división central va de base a tapa: oculta los laterales y separa el módulo libre.
+ if(asym){
+   box('División de cofrado',T,openingH,Math.max(4,D-1),0,openingBottom+openingH/2,-.5,wood,cab);
+   addPart('División de cofrado',1,openingH,Math.max(4,D-1),T);
+ }
+
+ // Divisiones adicionales: sólo en la zona superior si hay cajones, para no atravesarlos.
  if(nMod>1){
    const clearW=insideW-(nMod-1)*T,modW=clearW/nMod;
-   const protectedDrawers=nD>0 && placement!=='full';
-   const divBottom=protectedDrawers ? openingBottom+drawerZone : T;
-   const divH=Math.max(T,sideH-divBottom);
+   const divBottom=nD>0 ? openingBottom+drawerZone : T,divH=Math.max(T,sideH-divBottom);
    for(let i=1;i<nMod;i++){
      const x=-insideW/2+i*modW+(i-.5)*T;
+     if(asym && Math.abs(x)<T*.65)continue;
      box('División vertical '+i,T,divH,Math.max(4,D-1),x,divBottom+divH/2,-.5,wood,cab);
      addPart('Divisiones verticales',1,divH,Math.max(4,D-1),T);
    }
  }
- const shelfBottom=openingBottom+drawerZone, shelfAvail=Math.max(0,openingTop-shelfBottom);
- if(nS>0 && shelfAvail>T){
+
+ const upperBottom=openingBottom+drawerZone,upperAvail=Math.max(0,openingTop-upperBottom);
+ // Repisas generales se mantienen en la zona superior.
+ if(nS>0 && upperAvail>T){
    let ys=[];
    if(shelfMode.value==='manual'){
      renderManualShelfFields();
-     ys=[...document.querySelectorAll('.shelfPos')].map(x=>+x.value).filter(v=>isFinite(v)&&v>shelfBottom+T/2&&v<openingTop-T/2).sort((a,b)=>a-b);
-   }else{
-     for(let i=1;i<=nS;i++)ys.push(shelfBottom+(shelfAvail*i/(nS+1)));
-   }
-   ys.slice(0,nS).forEach((y,i)=>{box('Repisa '+(i+1),insideW,T,Math.max(4,D-1),0,y,-.5,wood,cab);addPart('Repisas',1,insideW,Math.max(4,D-1),T)});
+     ys=[...document.querySelectorAll('.shelfPos')].map(x=>+x.value).filter(v=>isFinite(v)&&v>upperBottom+T/2&&v<openingTop-T/2).sort((a,b)=>a-b);
+   }else for(let i=1;i<=nS;i++)ys.push(upperBottom+(upperAvail*i/(nS+1)));
+   const rw=asym?halfW:insideW,rx=asym?(placement==='left'?leftX:rightX):0;
+   ys.slice(0,nS).forEach((y,i)=>{box('Repisa superior '+(i+1),rw,T,Math.max(4,D-1),rx,y,-.5,wood,cab);addPart('Repisas superiores',1,rw,Math.max(4,D-1),T)});
  }
- if(nD>0&&(nS>0||nDoor>0)){const y=Math.min(openingTop-T/2,openingBottom+drawerZone);box('Separador',insideW,T,Math.max(4,D-1),0,y,-.5,wood,cab);addPart('Separador de zonas',1,insideW,Math.max(4,D-1),T)}
- // Puertas independientes: cada hoja tiene bisagra y animación propias.
- if(nDoor>0 && shelfAvail>4){
-   const doorGap=1,doorH=Math.max(4,shelfAvail-doorGap*2),frontY=shelfBottom+shelfAvail/2;
-   const w=Math.max(3,(insideW-doorGap*(nDoor+1))/nDoor);
-   for(let i=0;i<nDoor;i++){
-     const x=-insideW/2+doorGap+w/2+i*(w+doorGap),hinge=doorSides[i]||((i%2===0)?'left':'right');
-     doors.push(makeDoor(cab,x,frontY,w,doorH,hinge,i));doorStates.push(false);
+ if(nD>0&&(nS>0||nDoor>0)){
+   const sepW=asym?halfW:insideW,sepX=asym?(placement==='left'?leftX:rightX):0,y=Math.min(openingTop-T/2,upperBottom);
+   box('Separador sobre cajones',sepW,T,Math.max(4,D-1),sepX,y,-.5,wood,cab);addPart('Separador sobre cajones',1,sepW,Math.max(4,D-1),T);
+ }
+
+ // Lado libre asimétrico: abierto, repisas propias o puerta hasta el piso.
+ if(asym){
+   const freeX=placement==='left'?rightX:leftX,freeW=halfW,fs=Math.max(0,Math.min(8,Math.round(+freeSideShelves.value||0)));
+   if(freeSideMode.value==='shelves'){
+     for(let i=1;i<=fs;i++){const y=openingBottom+openingH*i/(fs+1);box('Repisa lado libre '+i,freeW,T,Math.max(4,D-1),freeX,y,-.5,wood,cab);addPart('Repisas lado libre',1,freeW,Math.max(4,D-1),T)}
    }
-   addPart(nDoor===1?'Puerta':'Puertas',nDoor,w,doorH,2);
+ }
+
+ // Puertas: en configuración asimétrica, las hojas se reparten por mitades.
+ // Las del módulo con cajones empiezan sobre ellos; las del módulo libre pueden llegar hasta la base.
+ if(nDoor>0){
+   if(asym){
+     const drawerLeft=placement==='left',leftDoors=Math.ceil(nDoor/2),rightDoors=nDoor-leftDoors;
+     const makeZone=(count,isLeft)=>{
+       if(count<=0)return;
+       const hasDrawers=isLeft===drawerLeft,fullFree=!hasDrawers&&freeSideMode.value==='door';
+       if(!hasDrawers&&!fullFree)return;
+       const zBottom=hasDrawers?upperBottom:openingBottom,zAvail=openingTop-zBottom;
+       if(zAvail<=4)return;
+       const zoneX=isLeft?leftX:rightX,zoneW=halfW,dg=1,w=Math.max(3,(zoneW-dg*(count+1))/count),h=Math.max(4,zAvail-dg*2),y=zBottom+zAvail/2;
+       for(let j=0;j<count;j++){
+         const globalIndex=doors.length,x=zoneX-zoneW/2+dg+w/2+j*(w+dg),hinge=doorSides[globalIndex]||((globalIndex%2===0)?'left':'right');
+         doors.push(makeDoor(cab,x,y,w,h,hinge,globalIndex));doorStates.push(false);addPart('Puerta '+(isLeft?'izquierda':'derecha'),1,w,h,2);
+       }
+     };
+     makeZone(leftDoors,true);makeZone(rightDoors,false);
+   }else if(upperAvail>4){
+     const dg=1,h=Math.max(4,upperAvail-dg*2),y=upperBottom+upperAvail/2,w=Math.max(3,(insideW-dg*(nDoor+1))/nDoor);
+     for(let i=0;i<nDoor;i++){const x=-insideW/2+dg+w/2+i*(w+dg),hinge=doorSides[i]||((i%2===0)?'left':'right');doors.push(makeDoor(cab,x,y,w,h,hinge,i));doorStates.push(false)}
+     addPart(nDoor===1?'Puerta':'Puertas',nDoor,w,h,2);
+   }
  }
  travel=Math.min(Math.max(D*.72,18),60);sync();syncDoors();fit();renderData()
 }
@@ -263,9 +294,11 @@ function packSheets(){
 }
 function drawSheets(ss){const SW=+sheetW.value||122,SL=+sheetL.value||244;sheets.innerHTML=ss.map((sh,i)=>`<div><b>Hoja ${i+1} · ${fmt(SW)} × ${fmt(SL)} cm</b><div class="sheet">${sh.used.map(p=>`<div class="piece" style="left:${p.x/SW*100}%;top:${p.y/SL*100}%;width:${p.w/SW*100}%;height:${p.h/SL*100}%">${p.name}</div>`).join('')}</div></div>`).join('')}
 mode.onchange=()=>{document.querySelectorAll('.solidOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='solid'));document.querySelectorAll('.sheetOnly').forEach(x=>x.classList.toggle('hidden',mode.value!=='sheet'));renderData()}
-applyBtn.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+8||d.H<=2*d.T+8){msg.textContent='Las medidas no dejan espacio interior suficiente.';return}build();msg.textContent='V7.1 · cajones por lado, divisiones protegidas, 3D y despiece recalculados.'}
+applyBtn.onclick=()=>{let vals=['W','H','D','T'].map(id=>+document.getElementById(id).value);if(vals.some(x=>!isFinite(x)||x<=0)){msg.textContent='Revisa las medidas.';return}d={W:vals[0],H:vals[1],D:vals[2],T:vals[3]};if(d.W<=2*d.T+8||d.H<=2*d.T+8){msg.textContent='Las medidas no dejan espacio interior suficiente.';return}build();msg.textContent='V7.2 · cajones cofrados, lado libre y puertas a piso recalculados.'}
 drawerSelect.onchange=updateDrawerButton;
 drawerPlacement.onchange=()=>build();
+freeSideMode.onchange=()=>build();
+freeSideShelves.onchange=()=>build();
 doorSelect.onchange=updateDoorButton;
 doorCount.onchange=()=>{ensureDoorSides();build()};
 moduleCount.onchange=()=>build();
